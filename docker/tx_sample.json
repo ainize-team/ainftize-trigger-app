@@ -16,19 +16,24 @@
             "nonce": -1,
             "operation": {
                 "is_global": false,
-                "ref": "/apps/sf_ainft/sd_inpainting/0x817aA7eA11592225FA90aC1902fEb34300A4A24C/0/1640223741870/input",
+                "ref": "/apps/ainftize_trigger_app/sd_inpainting/0x81Ca1Ef61b39089Fa35787dbe41C1Cdf7720203e/azuki-5281/1678770758868/input",
                 "type": "SET_VALUE",
-                "value": "{
-                    \"task_id\": \"359f6368-df09-5d72-a69d-15ba1c67f6f3\",
-                    \"prompt\": \"an ocean view\",
-                    \"parts\": \"background\",
-                    \"seed\": 42,
-                    \"guidance_scale\": 7.5,
-                    \"origin\": \"https://naver.com\",
-                    \"result\": \"https://naver.com\",
-                    \"updated_at\": 1640223741870,
-                    \"public_key\": \"12341234\"
-                }"
+                "value": {
+                    "task_id": "93181b49-8a12-5ae9-93b7-1c44235ea4f3",
+                    "params": {
+                        "model": "sd_inpainting",
+                        "prompt": "test-pink",
+                        "index": 0
+                    },
+                    "contract_info": {
+                        "contract": "0xsdasdas12edsd",
+                        "token_id": "2234",
+                        "metadata_cid": "QmWXJXRdExse2YHRY21Wvh4pjRxNRQcWVhcKw4DLVnqGqs"
+                    },
+                    "updated_at": 1678770758868,
+                    "trigger_ain_address": "0x2en12ksjndaksd",
+                    "user_eth_address": "test-user"
+                }
             },
             "timestamp": 1640223741430
         }

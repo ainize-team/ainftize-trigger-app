@@ -4,7 +4,7 @@ const axios = require('axios');
 const dotenv = require('dotenv');
 const pinataSDK = require("@pinata/sdk");
 const fs = require("fs");
-const {Readable} = require("stream");
+const { Readable } = require("stream");
 dotenv.config();
 
 const { parsePath, formatPath } = require('./util');
@@ -38,9 +38,13 @@ app.get('/', (req, res, next) => {
 
 app.post('/trigger', async (req, res) => {
 
-	const { selectedImageSeq, taskId } = req.body;
+	const { selectedImageSeq } = req.body;
 
-	const {transaction} = req.body;
+	const { transaction } = req.body;
+
+	const value = transaction.tx_body.operation.value;
+
+	const taskId = value.task_id;
 
 	const ain_tx = transaction.hash;
 	// init pinata sdk
@@ -48,11 +52,8 @@ app.post('/trigger', async (req, res) => {
 	// pinata auth test
 	const authResult = await pinata.testAuthentication();
 
-	// pinata current pinned files of account
-	const pinnedData = await pinata.pinList();
-
 	// get generated ainft image url with with task id
-	const result = await axios.get(`${process.env.SD_INPAINTING_ENDPOINT}/tasks/${taskId || "93181b49-8a12-5ae9-93b7-1c44235ea4f3"}`);
+	const result = await axios.get(`${process.env.SD_INPAINTING_ENDPOINT}/tasks/${taskId}`);
 
 	const imageUrls = result.data.result;
 
@@ -78,43 +79,61 @@ app.post('/trigger', async (req, res) => {
 			cidVersion: 0,
 		},
 	};
-	await pinata.pinFileToIPFS(imageDataStream, options)
-		.then(async (uploadImgRes) => {
+	
+	// upload image to ipfs
+	await pinata.pinFileToIPFS(imageDataStream, options).catch(err => console.error(err));
 
-			// const originMetadata = await axios.get("https://gateway.pinata.cloud/ipfs/QmWXJXRdExse2YHRY21Wvh4pjRxNRQcWVhcKw4DLVnqGqs/2234");
+	// get origin metadata
+	const originMetadata = await axios.get(`https://gateway.pinata.cloud/ipfs/${value.contract_info.metadata_cid}/${value.contract_info.token_id}`, {
+		headers: {
+			'Accept': '*/*'
+		}
+	});
 
-			const metadata = {
-				attributes: { "trait_type": "Test attributes", "value": "Test values" },
-				description: "test-desc",
-				image: "test-image",
-				name: "test-name",
-				namespaces: {
-					ainetwork: {
-						ain_tx: transaction.hash, // need 
-						prev_metadata: ain_tx, // do not apply yet
-						updated_at: Date.now(),
-					},
-				}
-			}
-			const metadataOption = {
-				pinataMetadata: {
-					name: `${taskId}_metadata`,
-				},
-				pinataOptions: {
-					cidVersion: 0,
-				},
-			}
+	// metadata will be writed in ipfs
+	const metadata = {
+		attributes: originMetadata.attributes,
+		description: originMetadata.description,
+		image: originMetadata.image,
+		name: originMetadata.name,
+		namespaces: {
+			ainetwork: {
+				model: value.params.model,
+				prompt: value.params.prompt,
+				ain_tx: transaction.hash, // need 
+				prev_metadata: value.contract_info.metadata_cid, // do not apply yet
+				updated_at: Date.now()
+			},
+		}
+	}
+	const metadataOption = {
+		pinataMetadata: {
+			name: `${taskId}_metadata`,
+		},
+		pinataOptions: {
+			cidVersion: 0,
+		},
+	}
 
-			await pinata.pinJSONToIPFS(metadata, metadataOption)
-				.then((uploadMetadataRes) => res.send(`Task ${taskId} is not completed!`))
-				.catch((err) => res.send(`Error : ${err}`));
-		})
-		// const outputPath = formatPath([...parsedInputPath.slice(0, parsedInputPath.length - 1), "signed_data"]);
-		const setValueRes = await ain.db.ref(outputPath).setValue({
-			value: `ainftize trigger test`,
-			nonce: -1,
-		})
-		
+	// upload metadata to upfs
+	const uploadMetadataRes = await pinata.pinJSONToIPFS(metadata, metadataOption).catch(err => console.error(err))
+
+	const inputPath = transaction.tx_body.operation.ref;
+	const parsedInputPath = parsePath(inputPath);
+
+	// pre-check the output path
+	const outputPath = await formatPath([...parsedInputPath.slice(0, parsedInputPath.length - 1), "signed_data"]);
+
+	await ain.db.ref(outputPath).setValue({
+		value: {
+			metadata_cid:uploadMetadataRes.IpfsHash,
+		},
+	}).catch((e) => {
+			console.error(`setValue failure:`, e);
+		});
+	
+	await res.status(200).send("Success");
+
 })
 
 // app.post('/trigger', async (req, res) => {
