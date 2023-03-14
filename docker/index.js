@@ -40,7 +40,7 @@ app.post('/trigger', async (req, res) => {
 
 	const { selectedImageSeq, taskId } = req.body;
 
-	const {transaction} = req.body.data;
+	const {transaction} = req.body;
 
 	const ain_tx = transaction.hash;
 	// init pinata sdk
@@ -52,12 +52,12 @@ app.post('/trigger', async (req, res) => {
 	const pinnedData = await pinata.pinList();
 
 	// get generated ainft image url with with task id
-	const result = await axios.get(`${process.env.SD_INPAINTING_ENDPOINT}/tasks/${taskId}`);
+	const result = await axios.get(`${process.env.SD_INPAINTING_ENDPOINT}/tasks/${taskId || "93181b49-8a12-5ae9-93b7-1c44235ea4f3"}`);
 
 	const imageUrls = result.data.result;
 
 	// get image file from url
-	const imageDataResponse = await axios.get(imageUrls[selectedImageSeq], {
+	const imageDataResponse = await axios.get(imageUrls[selectedImageSeq || 1], {
 		responseType: "arraybuffer",
 	});
 
@@ -109,6 +109,12 @@ app.post('/trigger', async (req, res) => {
 				.then((uploadMetadataRes) => res.send(`Task ${taskId} is not completed!`))
 				.catch((err) => res.send(`Error : ${err}`));
 		})
+		// const outputPath = formatPath([...parsedInputPath.slice(0, parsedInputPath.length - 1), "signed_data"]);
+		const setValueRes = await ain.db.ref(outputPath).setValue({
+			value: `ainftize trigger test`,
+			nonce: -1,
+		})
+		
 })
 
 // app.post('/trigger', async (req, res) => {
