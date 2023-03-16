@@ -59,6 +59,8 @@ app.post('/trigger', async (req, res) => {
 
 	// pre-check the output path
 	const outputPath = await formatPath([...parsedInputPath.slice(0, parsedInputPath.length - 1), "signed_data"]);
+	const errorPath = formatPath([...parsedInputPath.slice(0, parsedInputPath.length - 1), "error"]);
+
 	console.log(outputPath);
 	// init pinata sdk
 	const pinata = new pinataSDK({ pinataApiKey, pinataSecretApiKey });
@@ -95,7 +97,7 @@ app.post('/trigger', async (req, res) => {
 	// upload image to ipfs
 	const uploadImgRes = await pinata.pinFileToIPFS(imageDataStream, options)
 		.catch(err => {
-			ain.db.ref(outputPath).setValue({
+			ain.db.ref(errorPath).setValue({
 				value: {
 					state:"Error",
 					msg:"Image upload fail. check your inforamtion of Image"
@@ -145,7 +147,7 @@ app.post('/trigger', async (req, res) => {
 		// if fail upload metadata, uploaded image is unpined in pinata.
 		console.error(e);
 		await pinata.unpin(uploadImgRes.IpfsHash);
-		await ain.db.ref(outputPath).setValue({
+		await ain.db.ref(errorPath).setValue({
 			value: {
 				name:"ainftize",
 				state:"Error",
