@@ -32,8 +32,8 @@ app.get('/', (req, res, next) => {
 	res.status(200)
 		.set('Content-Type', 'text/plain')
 		.send(`SD inpainting trigger is alive!
-               input path: /apps/sf_ainft/sd_inpainting/$user_addr/$tokenId/$timestamp/input
-               signed data path: /apps/sf_ainft/sd_inpainting/$user_addr/$tokenId/$timestamp/signed_data
+               input path: /apps/ainftize_trigger_app/sd_inpainting/$user_addr/$tokenId/$timestamp/input
+               signed data path: /apps/ainftize_trigger_app/sd_inpainting/$user_addr/$tokenId/$timestamp/signed_data
                `)
 		.end();
 });
@@ -42,7 +42,7 @@ app.post('/trigger', async (req, res) => {
 
 	const { transaction } = req.body;
 	const value = transaction.tx_body.operation.value;
-	const taskId = value.task_id;
+	const taskId = value.params.task_id;
 	if(cache.get(taskId)){
 		cache.ttl(taskId, 60);
 		return;
@@ -50,8 +50,6 @@ app.post('/trigger', async (req, res) => {
 
 	// if request is first request, set cache 
 	cache.set(taskId, true, 60);
-	
-
 	let uploadMetadataRes; // for catch error
 
 	const inputPath = transaction.tx_body.operation.ref;
@@ -61,10 +59,8 @@ app.post('/trigger', async (req, res) => {
 	const outputPath = await formatPath([...parsedInputPath.slice(0, parsedInputPath.length - 1), "signed_data"]);
 	const errorPath = formatPath([...parsedInputPath.slice(0, parsedInputPath.length - 1), "error"]);
 
-	console.log(outputPath);
 	// init pinata sdk
 	const pinata = new pinataSDK({ pinataApiKey, pinataSecretApiKey });
-
 
 	// get generated ainft image url with with task id
 	const result = await axios.get(`${process.env.SD_INPAINTING_ENDPOINT}/tasks/${taskId}`);
@@ -110,7 +106,7 @@ app.post('/trigger', async (req, res) => {
 		});
 
 	// get origin metadata
-	const originMetadata = await axios.get(`https://gateway.pinata.cloud/ipfs/${value.contract_info.metadata_cid}/${value.contract_info.token_id}`, {
+	const originMetadata = await axios.get(`https://gateway.pinata.cloud/ipfs/${value.contract.old_metadata}/${value.contract.token_id}`, {
 		headers: {
 			'Accept': '*/*'
 		}
@@ -125,7 +121,7 @@ app.post('/trigger', async (req, res) => {
 		namespaces: {
 			ainetwork: {
 				ain_tx: transaction.hash, // need 
-				old_metadata: value.contract_info.metadata_cid, // do not apply yet
+				old_metadata: value.contract.old_metadata, // do not apply yet
 				updated_at: Date.now()
 			},
 		}
@@ -149,7 +145,6 @@ app.post('/trigger', async (req, res) => {
 		await pinata.unpin(uploadImgRes.IpfsHash);
 		await ain.db.ref(errorPath).setValue({
 			value: {
-				name:"ainftize",
 				state:"Error",
 				msg:"Metadata upload fail. check your inforamtion of metadata"
 			},
@@ -164,7 +159,15 @@ app.post('/trigger', async (req, res) => {
 
 	await ain.db.ref(outputPath).setValue({
 		value: {
-			metadata_cid: uploadMetadataRes.IpfsHash,
+			contract:{
+				network:value.contract.network,
+				chain_id:value.contract.chain_id,
+				account:value.contract.account,
+				token_id:value.contract.token_id,
+				new_metadata: uploadMetadataRes.IpfsHash,
+			},
+			verified_at: Date.now(),
+			trigger_verification_account: BOT_ADDRESS,
 		},
 	}).catch((e) => {
 		console.error(`setValue failure:`, e);
