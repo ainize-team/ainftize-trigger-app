@@ -9,6 +9,7 @@ dotenv.config();
 
 const { parsePath, formatPath } = require('./util');
 const { default: Ain } = require('@ainblockchain/ain-js');
+const { resolve } = require('dns');
 
 const app = express();
 
@@ -38,19 +39,20 @@ app.get('/', (req, res, next) => {
 
 app.post('/trigger', async (req, res) => {
 
-	const { selectedImageSeq } = req.body;
-
 	const { transaction } = req.body;
-
 	const value = transaction.tx_body.operation.value;
-
 	const taskId = value.task_id;
+	let uploadMetadataRes; // for catch error
 
-	const ain_tx = transaction.hash;
+	const inputPath = transaction.tx_body.operation.ref;
+	const parsedInputPath = parsePath(inputPath);
+
+	// pre-check the output path
+	const outputPath = await formatPath([...parsedInputPath.slice(0, parsedInputPath.length - 1), "signed_data"]);
+
 	// init pinata sdk
 	const pinata = new pinataSDK({ pinataApiKey, pinataSecretApiKey });
-	// pinata auth test
-	const authResult = await pinata.testAuthentication();
+
 
 	// get generated ainft image url with with task id
 	const result = await axios.get(`${process.env.SD_INPAINTING_ENDPOINT}/tasks/${taskId}`);
@@ -58,7 +60,7 @@ app.post('/trigger', async (req, res) => {
 	const imageUrls = result.data.result;
 
 	// get image file from url
-	const imageDataResponse = await axios.get(imageUrls[selectedImageSeq || 1], {
+	const imageDataResponse = await axios.get(imageUrls[value.params.index || 1], {
 		responseType: "arraybuffer",
 	});
 
@@ -79,9 +81,9 @@ app.post('/trigger', async (req, res) => {
 			cidVersion: 0,
 		},
 	};
-	
+
 	// upload image to ipfs
-	await pinata.pinFileToIPFS(imageDataStream, options).catch(err => console.error(err));
+	const uploadImgRes = await pinata.pinFileToIPFS(imageDataStream, options).catch(err => console.error(err));
 
 	// get origin metadata
 	const originMetadata = await axios.get(`https://gateway.pinata.cloud/ipfs/${value.contract_info.metadata_cid}/${value.contract_info.token_id}`, {
@@ -115,24 +117,34 @@ app.post('/trigger', async (req, res) => {
 		},
 	}
 
-	// upload metadata to upfs
-	const uploadMetadataRes = await pinata.pinJSONToIPFS(metadata, metadataOption).catch(err => console.error(err))
+	try{
+		// upload metadata to ipfs
+		uploadMetadataRes = await pinata.pinJSONToIPFS('metadata', "metadataOption")
+	}
+	catch (e){
+		// if fail upload metadata, uploaded image is unpined in pinata.
+		await pinata.unpin(uploadImgRes.IpfsHash);
+		await ain.db.ref(outputPath).setValue({
+			value: {
+				msg:e,
+				"status":502,
+			},
+		}).catch((e) => {
+			console.error(`setValue failure:`, e);
+		});
 
-	const inputPath = transaction.tx_body.operation.ref;
-	const parsedInputPath = parsePath(inputPath);
-
-	// pre-check the output path
-	const outputPath = await formatPath([...parsedInputPath.slice(0, parsedInputPath.length - 1), "signed_data"]);
+		return;
+	}
 
 	await ain.db.ref(outputPath).setValue({
 		value: {
-			metadata_cid:uploadMetadataRes.IpfsHash,
+			metadata_cid: uploadMetadataRes.IpfsHash,
 		},
 	}).catch((e) => {
-			console.error(`setValue failure:`, e);
-		});
-	
-	await res.status(200).send("Success");
+		console.error(`setValue failure:`, e);
+	});
+
+	console.log(`Success! \n image upload tx : ${uploadImgRes.IpfsHash} \n metadata upload tx : ${uploadMetadataRes.IpfsHash}`);
 
 })
 
