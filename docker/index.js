@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const pinataSDK = require("@pinata/sdk");
 const fs = require("fs");
 const { Readable } = require("stream");
+const NodeCache = require("node-cache");
 dotenv.config();
 
 const { parsePath, formatPath } = require('./util');
@@ -21,6 +22,7 @@ const BOT_PRIVKEY = process.env.AINIZE_INTERNAL_PRIVATE_KEY;
 const BOT_ADDRESS = AinJs.utils.toChecksumAddress(ain.wallet.add(BOT_PRIVKEY));
 const pinataApiKey = process.env.PINATA_API_KEY;
 const pinataSecretApiKey = process.env.PINATA_SECRET_API_KEY;
+const cache = new NodeCache();
 // set BOT_ADDRESS as default wallet
 ain.wallet.setDefaultAccount(BOT_ADDRESS);
 
@@ -41,6 +43,15 @@ app.post('/trigger', async (req, res) => {
 	const { transaction } = req.body;
 	const value = transaction.tx_body.operation.value;
 	const taskId = value.task_id;
+	if(cache.get(taskId)){
+		cache.ttl(taskId, 60);
+		return;
+	}
+
+	// if request is first request, set cache 
+	cache.set(taskId, true, 60);
+	
+
 	let uploadMetadataRes; // for catch error
 
 	const inputPath = transaction.tx_body.operation.ref;
