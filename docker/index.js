@@ -9,8 +9,6 @@ const NodeCache = require("node-cache");
 dotenv.config();
 
 const { parsePath, formatPath } = require('./util');
-const { default: Ain } = require('@ainblockchain/ain-js');
-const { resolve } = require('dns');
 
 const app = express();
 
@@ -33,7 +31,7 @@ app.get('/', (req, res, next) => {
 		.set('Content-Type', 'text/plain')
 		.send(`SD inpainting trigger is alive!
                input path: /apps/ainftize_trigger_app/sd_inpainting/$user_addr/$tokenId/$timestamp/input
-               signed data path: /apps/ainftize_trigger_app/sd_inpainting/$user_addr/$tokenId/$timestamp/signed_data
+               verify path: /apps/ainftize_trigger_app/sd_inpainting/$user_addr/$tokenId/$timestamp/verify
                `)
 		.end();
 });
@@ -56,7 +54,7 @@ app.post('/trigger', async (req, res) => {
 	const parsedInputPath = parsePath(inputPath);
 
 	// pre-check the output path
-	const outputPath = await formatPath([...parsedInputPath.slice(0, parsedInputPath.length - 1), "signed_data"]);
+	const outputPath = await formatPath([...parsedInputPath.slice(0, parsedInputPath.length - 1), "verify"]);
 	const errorPath = formatPath([...parsedInputPath.slice(0, parsedInputPath.length - 1), "error"]);
 
 	// init pinata sdk
@@ -91,19 +89,24 @@ app.post('/trigger', async (req, res) => {
 	};
 
 	// upload image to ipfs
-	const uploadImgRes = await pinata.pinFileToIPFS(imageDataStream, options)
-		.catch(err => {
-			ain.db.ref(errorPath).setValue({
-				value: {
-					state:"Error",
-					msg:"Image upload fail. check your inforamtion of Image"
-				},
-			})
-			.then(res => console.log(res))
-			.catch((e) => {
-				console.error(`setValue failure:`, e);
-			});
+	try{
+		await pinata.pinFileToIPFS(imageDataStream, options)
+	}
+	catch(e) {
+		ain.db.ref(errorPath).setValue({
+			value: {
+				state:"Error",
+				msg:"Image upload fail. check your inforamtion of Image"
+			},
+		})
+		.then(res => console.log(res))
+		.catch((e) => {
+			console.error(`setValue failure:`, e);
+			res.status(502).send("image upload fail");
 		});
+
+		return;
+	}
 
 	// get origin metadata
 	const originMetadata = await axios.get(`https://gateway.pinata.cloud/ipfs/${value.contract.old_metadata}/${value.contract.token_id}`, {
