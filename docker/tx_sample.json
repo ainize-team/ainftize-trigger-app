@@ -39,10 +39,12 @@
                         "old_image": "ipfs://Generated Image IPFS CID", 
                         "old_name": "NFT Name"
                     },
-                    "contract_info": {
-                        "contract": "0xsdasdas12edsd",
-                        "token_id": "2234",
-                        "metadata_cid": "QmWXJXRdExse2YHRY21Wvh4pjRxNRQcWVhcKw4DLVnqGqs"
+                    "contract": {
+                        "network": "homestead",
+                        "chain_id": 42,
+                        "account": "0x1234....567",
+                        "token_id": 150,
+                        "old_metadata": "ipfs://Qm...v1"
                     },
                     "updated_at": 1678770758868,
                     "trigger_ain_address": "0x2en12ksjndaksd",

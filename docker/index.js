@@ -49,6 +49,7 @@ app.post('/trigger', async (req, res) => {
 	// if request is first request, set cache 
 	cache.set(taskId, true, 60);
 	let uploadMetadataRes; // for catch error
+	let uploadImgRes;
 
 	const inputPath = transaction.tx_body.operation.ref;
 	const parsedInputPath = parsePath(inputPath);
@@ -60,17 +61,12 @@ app.post('/trigger', async (req, res) => {
 	// init pinata sdk
 	const pinata = new pinataSDK({ pinataApiKey, pinataSecretApiKey });
 
-	// get generated ainft image url with with task id
-	const result = await axios.get(`${process.env.SD_INPAINTING_ENDPOINT}/tasks/${taskId}`);
-
-	const imageUrls = result.data.result;
-
 	// get image file from url
-	const imageDataResponse = await axios.get(imageUrls[value.params.index || 1], {
+	const imageDataResponse = await axios.get(value.params.tempImageUrl, {
 		responseType: "arraybuffer",
 	});
 
-	// for test
+	// for test, if develop front-end, using imageDataResponse
 	const imageBuffer = fs.readFileSync(__dirname + "/test.png");
 
 	// image file to readable stream
@@ -90,7 +86,7 @@ app.post('/trigger', async (req, res) => {
 
 	// upload image to ipfs
 	try{
-		await pinata.pinFileToIPFS(imageDataStream, options)
+		uploadImgRes = await pinata.pinFileToIPFS(imageDataStream, options)
 	}
 	catch(e) {
 		ain.db.ref(errorPath).setValue({
@@ -108,19 +104,12 @@ app.post('/trigger', async (req, res) => {
 		return;
 	}
 
-	// get origin metadata
-	const originMetadata = await axios.get(`https://gateway.pinata.cloud/ipfs/${value.contract.old_metadata}/${value.contract.token_id}`, {
-		headers: {
-			'Accept': '*/*'
-		}
-	});
-
 	// metadata will be writed in ipfs
 	const metadata = {
-		attributes: originMetadata.attributes,
-		description: originMetadata.description,
-		image: originMetadata.image,
-		name: originMetadata.name,
+		attributes: value.params.attributes,
+		description: value.params.description,
+		image: value.params.image,
+		name: value.params.name,
 		namespaces: {
 			ainetwork: {
 				ain_tx: transaction.hash, // need 
