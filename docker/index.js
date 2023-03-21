@@ -113,8 +113,8 @@ app.post('/trigger', async (req, res) => {
 		name: value.params.old_name,
 		namespaces: {
 			ainetwork: {
-				ain_tx: transaction.hash, // need 
-				old_metadata: value.contract.old_metadata, // do not apply yet
+				ain_tx: transaction.hash, 
+				old_metadata: value.contract.old_metadata, 
 				updated_at: Date.now()
 			},
 		}
