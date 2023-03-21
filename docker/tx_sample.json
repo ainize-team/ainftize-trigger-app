@@ -19,11 +19,25 @@
                 "ref": "/apps/ainftize_trigger_app/sd_inpainting/0x81Ca1Ef61b39089Fa35787dbe41C1Cdf7720203e/azuki-5281/1678770758868/input",
                 "type": "SET_VALUE",
                 "value": {
-                    "task_id": "93181b49-8a12-5ae9-93b7-1c44235ea4f3",
                     "params": {
+                        "service_name":"AINFTize-parts-generation",
+                        "task_id": "93181b49-8a12-5ae9-93b7-1c44235ea4f3",
                         "model": "sd_inpainting",
                         "prompt": "test-pink",
-                        "index": 0
+                        "tempImageUrl": "https://storage.googleapis.com/ain-dao-ai-playground-dev.appspot.com/inpainting-dev/results/93181b49-8a12-5ae9-93b7-1c44235ea4f3/0.png",
+                        "old_attributes": [
+                            {
+                                "trait_type": "Original attributes 1",
+                                "value": "Original values 1"
+                            },
+                            {
+                                "trait_type": "Original attributes 2",
+                                "value": "Original values2 "
+                            }
+                        ],
+                        "old_description": "Description", 
+                        "old_image": "ipfs://Generated Image IPFS CID", 
+                        "old_name": "NFT Name"
                     },
                     "contract_info": {
                         "contract": "0xsdasdas12edsd",
