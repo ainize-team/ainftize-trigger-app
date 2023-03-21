@@ -107,10 +107,10 @@ app.post('/trigger', async (req, res) => {
 
 	// metadata will be writed in ipfs
 	const metadata = {
-		attributes: value.params.attributes,
-		description: value.params.description,
-		image: value.params.image,
-		name: value.params.name,
+		attributes: value.params.old_attributes,
+		description: value.params.old_description,
+		image: value.params.old_image,
+		name: value.params.old_name,
 		namespaces: {
 			ainetwork: {
 				ain_tx: transaction.hash, // need 
@@ -119,6 +119,7 @@ app.post('/trigger', async (req, res) => {
 			},
 		}
 	}
+	console.log(metadata);
 	const metadataOption = {
 		pinataMetadata: {
 			name: `${taskId}_metadata`,
