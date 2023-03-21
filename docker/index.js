@@ -48,7 +48,9 @@ app.post('/trigger', async (req, res) => {
 
 	// if request is first request, set cache 
 	cache.set(taskId, true, 60);
-	let uploadMetadataRes; // for catch error
+
+	// for catch error
+	let uploadMetadataRes; 
 	let uploadImgRes;
 
 	const inputPath = transaction.tx_body.operation.ref;
@@ -119,7 +121,7 @@ app.post('/trigger', async (req, res) => {
 			},
 		}
 	}
-	console.log(metadata);
+
 	const metadataOption = {
 		pinataMetadata: {
 			name: `${taskId}_metadata`,
