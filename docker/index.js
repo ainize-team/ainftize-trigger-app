@@ -89,6 +89,7 @@ app.post('/trigger', async (req, res) => {
 		uploadImgRes = await pinata.pinFileToIPFS(imageDataStream, options)
 	}
 	catch(e) {
+		console.error(e);
 		ain.db.ref(errorPath).setValue({
 			value: {
 				state:"Error",
