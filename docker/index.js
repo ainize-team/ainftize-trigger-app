@@ -57,8 +57,10 @@ app.post('/trigger', async (req, res) => {
 	const parsedInputPath = parsePath(inputPath);
 
 	// pre-check the output path
-	const outputPath = await formatPath([...parsedInputPath.slice(0, parsedInputPath.length - 1), "verify"]);
-	const errorPath = formatPath([...parsedInputPath.slice(0, parsedInputPath.length - 1), "error"]);
+	const rootPath = [...parsedInputPath.slice(0, parsedInputPath.length - 1)]
+	
+	const outputPath = formatPath([...rootPath, "verify"]);
+	const errorPath = formatPath([...rootPath, "error"]);
 
 	// init pinata sdk
 	const pinata = new pinataSDK({ pinataApiKey, pinataSecretApiKey });
@@ -158,7 +160,7 @@ app.post('/trigger', async (req, res) => {
 		return;
 	}
 
-	await ain.db.ref(outputPath).setValue({
+	const ainRes = await ain.db.ref(outputPath).setValue({
 		value: {
 			contract:{
 				network:value.contract_info.network,
@@ -173,7 +175,7 @@ app.post('/trigger', async (req, res) => {
 	}).catch((e) => {
 		console.error(`setValue failure:`, e);
 	});
-
+	await console.log(ainRes);
 	console.log(`Success! \n image upload tx : ${uploadImgRes.IpfsHash} \n metadata upload tx : ${uploadMetadataRes.IpfsHash}`);
 
 })
