@@ -107,16 +107,21 @@ app.post('/trigger', async (req, res) => {
 		return;
 	}
 
+	let old_attributes_modify = [];
+	await Object.values(value.params.old_attributes).map((item, idx) => {
+		old_attributes_modify.push(item);
+	})
+
 	// metadata will be writed in ipfs
 	const metadata = {
-		attributes: value.params.old_attributes,
-		description: value.params.old_description,
-		image: value.params.old_image,
-		name: value.params.old_name,
+		old_attributes: old_attributes_modify,
+		old_description: value.params.old_description,
+		old_image: value.params.old_image,
+		old_name: value.params.old_name,
 		namespaces: {
 			ainetwork: {
 				ain_tx: transaction.hash, 
-				old_metadata: value.contract.old_metadata, 
+				old_metadata: value.contract_info.old_metadata, 
 				updated_at: Date.now()
 			},
 		}
@@ -156,10 +161,10 @@ app.post('/trigger', async (req, res) => {
 	await ain.db.ref(outputPath).setValue({
 		value: {
 			contract:{
-				network:value.contract.network,
-				chain_id:value.contract.chain_id,
-				account:value.contract.account,
-				token_id:value.contract.token_id,
+				network:value.contract_info.network,
+				chain_id:value.contract_info.chain_id,
+				account:value.contract_info.account,
+				token_id:value.contract_info.token_id,
 				new_metadata: uploadMetadataRes.IpfsHash,
 			},
 			verified_at: Date.now(),
