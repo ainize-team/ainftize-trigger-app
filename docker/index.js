@@ -37,8 +37,6 @@ app.get('/', (req, res, next) => {
 });
 
 app.post('/trigger', async (req, res) => {
-	
-	console.log(JSON.stringify(req.body.transaction));
 
 	const { transaction } = req.body;
 	const value = transaction.tx_body.operation.value;
@@ -54,6 +52,8 @@ app.post('/trigger', async (req, res) => {
 	// for catch error
 	let uploadMetadataRes; 
 	let uploadImgRes;
+
+	console.log(JSON.stringify(transaction));
 
 	const inputPath = transaction.tx_body.operation.ref;
 	const parsedInputPath = parsePath(inputPath);
@@ -92,7 +92,7 @@ app.post('/trigger', async (req, res) => {
 		uploadImgRes = await pinata.pinFileToIPFS(imageDataStream, options)
 	}
 	catch(e) {
-		console.error(e);
+		console.error('Fail image upload', e);
 		ain.db.ref(errorPath).setValue({
 			value: {
 				state:"Error",
@@ -142,7 +142,7 @@ app.post('/trigger', async (req, res) => {
 	}
 	catch (e){
 		// if fail upload metadata, uploaded image is unpined in pinata.
-		console.error(e);
+		console.error('Fail ipfs upload', e);
 		await pinata.unpin(uploadImgRes.IpfsHash);
 		await ain.db.ref(errorPath).setValue({
 			value: {
