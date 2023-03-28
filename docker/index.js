@@ -125,7 +125,7 @@ app.post('/trigger', async (req, res) => {
 		namespaces: {
 			ainetwork: {
 				ain_tx: transaction.hash, 
-				old_metadata: value.contract_info.old_metadata, 
+				old_metadata: value.contract.old_metadata, 
 				updated_at: Date.now()
 			},
 		}
@@ -164,10 +164,10 @@ app.post('/trigger', async (req, res) => {
 	await ain.db.ref(outputPath).setValue({
 		value: {
 			contract:{
-				network:value.contract_info.network,
-				chain_id:value.contract_info.chain_id,
-				account:value.contract_info.account,
-				token_id:value.contract_info.token_id,
+				network:value.contract.network,
+				chain_id:value.contract.chain_id,
+				account:value.contract.account,
+				token_id:value.contract.token_id,
 				new_metadata: uploadMetadataRes.IpfsHash,
 			},
 			verified_at: Date.now(),
