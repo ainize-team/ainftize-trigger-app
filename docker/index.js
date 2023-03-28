@@ -13,7 +13,7 @@ const { parsePath, formatPath } = require('./util');
 const app = express();
 
 const port = 80;
-const blockchainEndpoint = process.env.PROVIDER_URL;
+const blockchainEndpoint = process.env.TESTNET_PROVIDER_URL;
 const chainId = process.env.NETWORK === 'mainnet' ? 1 : 0;
 const ain = new AinJs(blockchainEndpoint, chainId);
 const BOT_PRIVKEY = process.env.AINIZE_INTERNAL_PRIVATE_KEY;
@@ -41,7 +41,7 @@ app.post('/trigger', async (req, res) => {
 	const { transaction } = req.body;
 	const value = transaction.tx_body.operation.value;
 	const taskId = value.params.task_id;
-	if(cache.get(taskId)){
+	if (cache.get(taskId)) {
 		cache.ttl(taskId, 60);
 		return;
 	}
@@ -50,15 +50,15 @@ app.post('/trigger', async (req, res) => {
 	cache.set(taskId, true, 60);
 
 	// for catch error
-	let uploadMetadataRes; 
+	let uploadMetadataRes;
 	let uploadImgRes;
 
 	const inputPath = transaction.tx_body.operation.ref;
 	const parsedInputPath = parsePath(inputPath);
 
 	// pre-check the output path
-	const rootPath = [...parsedInputPath.slice(0, parsedInputPath.length - 1)]
-	
+	const rootPath = [...parsedInputPath.slice(0, parsedInputPath.length - 1)];
+
 	const outputPath = formatPath([...rootPath, "verify"]);
 	const errorPath = formatPath([...rootPath, "error"]);
 
@@ -66,8 +66,12 @@ app.post('/trigger', async (req, res) => {
 	const pinata = new pinataSDK({ pinataApiKey, pinataSecretApiKey });
 
 	// get image file from url
-	const imageDataResponse = await axios.get(value.params.tempImageUrl, {
+	const imageDataResponse = await axios.get(value.params.temp_image_url, {
 		responseType: "arraybuffer",
+	})
+	.catch(e => {
+		console.error('Fail get image', e)
+		return;
 	});
 
 	// image file to readable stream
@@ -86,21 +90,21 @@ app.post('/trigger', async (req, res) => {
 	};
 
 	// upload image to ipfs
-	try{
-		uploadImgRes = await pinata.pinFileToIPFS(imageDataStream, options)
+	try {
+		uploadImgRes = await pinata.pinFileToIPFS(imageDataStream, options);
 	}
-	catch(e) {
-		console.error(e);
+	catch (e) {
+		console.error('Fail image upload', e);
 		ain.db.ref(errorPath).setValue({
 			value: {
-				state:"Error",
-				msg:"Image upload fail. check your inforamtion of Image"
+				state: "Error",
+				msg: "Image upload fail. check your inforamtion of Image"
 			},
 		})
-		.catch((e) => {
-			console.error(`setValue failure:`, e);
-			res.status(502).send("image upload fail");
-		});
+			.catch((e) => {
+				console.error(`setValue failure:`, e);
+				res.status(502).send("image upload fail");
+			});
 
 		return;
 	}
@@ -118,8 +122,8 @@ app.post('/trigger', async (req, res) => {
 		old_name: value.params.old_name,
 		namespaces: {
 			ainetwork: {
-				ain_tx: transaction.hash, 
-				old_metadata: value.contract_info.old_metadata, 
+				ain_tx: transaction.hash,
+				old_metadata: value.contract.old_metadata,
 				updated_at: Date.now()
 			},
 		}
@@ -134,41 +138,46 @@ app.post('/trigger', async (req, res) => {
 		},
 	}
 
-	try{
+	try {
 		// upload metadata to ipfs
 		uploadMetadataRes = await pinata.pinJSONToIPFS(metadata, metadataOption);
 	}
-	catch (e){
+	catch (e) {
 		// if fail upload metadata, uploaded image is unpined in pinata.
-		console.error(e);
+		console.error('Fail ipfs upload', e);
 		await pinata.unpin(uploadImgRes.IpfsHash);
 		await ain.db.ref(errorPath).setValue({
 			value: {
-				state:"Error",
-				msg:"Metadata upload fail. check your inforamtion of metadata"
+				state: "Error",
+				msg: "Metadata upload fail. check your inforamtion of metadata"
 			},
 		})
-		.catch((e) => {
-			console.error(`setValue failure:`, e);
-		});
+			.catch((e) => {
+				console.error(`setValue failure:`, e);
+				return;
+			});
 
 		return;
 	}
 
-	const ainRes = await ain.db.ref(outputPath).setValue({
+	await ain.db.ref(outputPath).setValue({
+		nonce: -1,
+		gas_price: 500,
 		value: {
-			contract:{
-				network:value.contract_info.network,
-				chain_id:value.contract_info.chain_id,
-				account:value.contract_info.account,
-				token_id:value.contract_info.token_id,
+			contract: {
+				network: value.contract.network,
+				chain_id: value.contract.chain_id,
+				account: value.contract.account,
+				token_id: value.contract.token_id,
 				new_metadata: uploadMetadataRes.IpfsHash,
 			},
 			verified_at: Date.now(),
 			trigger_verification_account: BOT_ADDRESS,
 		},
-	}).catch((e) => {
+	})
+	.catch((e) => {
 		console.error(`setValue failure:`, e);
+		return;
 	});
 	console.log(`Success! \n image upload tx : ${uploadImgRes.IpfsHash} \n metadata upload tx : ${uploadMetadataRes.IpfsHash}`);
 
