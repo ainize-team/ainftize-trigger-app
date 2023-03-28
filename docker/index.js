@@ -70,12 +70,9 @@ app.post('/trigger', async (req, res) => {
 		responseType: "arraybuffer",
 	});
 
-	// for test, if develop front-end, using imageDataResponse
-	const imageBuffer = fs.readFileSync(__dirname + "/test.png");
-
 	// image file to readable stream
 	const imageDataStream = new Readable();
-	imageDataStream.push(imageBuffer);
+	imageDataStream.push(imageDataResponse.data);
 	imageDataStream.push(null);
 
 	// upload image to pinata
@@ -100,7 +97,6 @@ app.post('/trigger', async (req, res) => {
 				msg:"Image upload fail. check your inforamtion of Image"
 			},
 		})
-		.then(res => console.log(res))
 		.catch((e) => {
 			console.error(`setValue failure:`, e);
 			res.status(502).send("image upload fail");
@@ -152,7 +148,6 @@ app.post('/trigger', async (req, res) => {
 				msg:"Metadata upload fail. check your inforamtion of metadata"
 			},
 		})
-		.then(res => console.log(res))
 		.catch((e) => {
 			console.error(`setValue failure:`, e);
 		});
@@ -175,7 +170,6 @@ app.post('/trigger', async (req, res) => {
 	}).catch((e) => {
 		console.error(`setValue failure:`, e);
 	});
-	await console.log(ainRes);
 	console.log(`Success! \n image upload tx : ${uploadImgRes.IpfsHash} \n metadata upload tx : ${uploadMetadataRes.IpfsHash}`);
 
 })
