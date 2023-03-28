@@ -38,7 +38,7 @@ app.get('/', (req, res, next) => {
 
 app.post('/trigger', async (req, res) => {
 	
-	console.log(req.body);
+	console.log(JSON.stringify(req.body));
 
 	const { transaction } = req.body;
 	const value = transaction.tx_body.operation.value;
