@@ -57,7 +57,7 @@ app.post('/trigger', async (req, res) => {
 	const parsedInputPath = parsePath(inputPath);
 
 	// pre-check the output path
-	const rootPath = [...parsedInputPath.slice(0, parsedInputPath.length - 1)]
+	const rootPath = [...parsedInputPath.slice(0, parsedInputPath.length - 1)];
 	
 	const outputPath = formatPath([...rootPath, "verify"]);
 	const errorPath = formatPath([...rootPath, "error"]);
@@ -93,7 +93,7 @@ app.post('/trigger', async (req, res) => {
 
 	// upload image to ipfs
 	try{
-		uploadImgRes = await pinata.pinFileToIPFS(imageDataStream, options)
+		uploadImgRes = await pinata.pinFileToIPFS(imageDataStream, options);
 	}
 	catch(e) {
 		console.error('Fail image upload', e);
@@ -173,7 +173,9 @@ app.post('/trigger', async (req, res) => {
 			verified_at: Date.now(),
 			trigger_verification_account: BOT_ADDRESS,
 		},
-	}).catch((e) => {
+	})
+	.then(ainRes => console.log(ainRes))
+	.catch((e) => {
 		console.error(`setValue failure:`, e);
 	});
 	console.log(`Success! \n image upload tx : ${uploadImgRes.IpfsHash} \n metadata upload tx : ${uploadMetadataRes.IpfsHash}`);
