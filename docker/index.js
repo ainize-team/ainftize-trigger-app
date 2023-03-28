@@ -66,7 +66,7 @@ app.post('/trigger', async (req, res) => {
 	const pinata = new pinataSDK({ pinataApiKey, pinataSecretApiKey });
 
 	// get image file from url
-	const imageDataResponse = await axios.get(value.params.tempImageUrl, {
+	const imageDataResponse = await axios.get(value.params.temp_image_url, {
 		responseType: "arraybuffer",
 	})
 	.catch(e => {
