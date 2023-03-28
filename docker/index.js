@@ -13,7 +13,7 @@ const { parsePath, formatPath } = require('./util');
 const app = express();
 
 const port = 80;
-const blockchainEndpoint = process.env.PROVIDER_URL;
+const blockchainEndpoint = process.env.TESTNET_PROVIDER_URL;
 const chainId = process.env.NETWORK === 'mainnet' ? 1 : 0;
 const ain = new AinJs(blockchainEndpoint, chainId);
 const BOT_PRIVKEY = process.env.AINIZE_INTERNAL_PRIVATE_KEY;
