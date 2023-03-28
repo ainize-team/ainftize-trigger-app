@@ -70,7 +70,8 @@ app.post('/trigger', async (req, res) => {
 	// get image file from url
 	const imageDataResponse = await axios.get(value.params.tempImageUrl, {
 		responseType: "arraybuffer",
-	});
+	})
+	.catch(e => console.error('Fail get image', e));
 
 	// image file to readable stream
 	const imageDataStream = new Readable();
