@@ -53,8 +53,6 @@ app.post('/trigger', async (req, res) => {
 	let uploadMetadataRes; 
 	let uploadImgRes;
 
-	console.log(JSON.stringify(transaction));
-
 	const inputPath = transaction.tx_body.operation.ref;
 	const parsedInputPath = parsePath(inputPath);
 
@@ -71,7 +69,12 @@ app.post('/trigger', async (req, res) => {
 	const imageDataResponse = await axios.get(value.params.tempImageUrl, {
 		responseType: "arraybuffer",
 	})
-	.catch(e => console.error('Fail get image', e));
+	.catch(e => {
+		console.log(value);
+		console.log(JSON.stringify(value));
+		console.error('Fail get image', e)
+		return;
+	});
 
 	// image file to readable stream
 	const imageDataStream = new Readable();
@@ -158,7 +161,7 @@ app.post('/trigger', async (req, res) => {
 		return;
 	}
 
-	const ainRes = await ain.db.ref(outputPath).setValue({
+	await ain.db.ref(outputPath).setValue({
 		value: {
 			contract:{
 				network:value.contract_info.network,
