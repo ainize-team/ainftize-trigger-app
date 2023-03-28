@@ -16,19 +16,39 @@
             "nonce": -1,
             "operation": {
                 "is_global": false,
-                "ref": "/apps/sf_ainft/sd_inpainting/0x817aA7eA11592225FA90aC1902fEb34300A4A24C/0/1640223741870/input",
+                "ref": "/apps/ainftize_trigger_app/sd_inpainting/0x81Ca1Ef61b39089Fa35787dbe41C1Cdf7720203e/azuki-5281/1678770758868/input",
                 "type": "SET_VALUE",
-                "value": "{
-                    \"task_id\": \"359f6368-df09-5d72-a69d-15ba1c67f6f3\",
-                    \"prompt\": \"an ocean view\",
-                    \"parts\": \"background\",
-                    \"seed\": 42,
-                    \"guidance_scale\": 7.5,
-                    \"origin\": \"https://naver.com\",
-                    \"result\": \"https://naver.com\",
-                    \"updated_at\": 1640223741870,
-                    \"public_key\": \"12341234\"
-                }"
+                "value": {
+                    "params": {
+                        "service_name":"AINFTize-parts-generation",
+                        "task_id": "93181b49-8a12-5ae9-93b7-1c44235ea4f3",
+                        "model": "sd_inpainting",
+                        "prompt": "test-pink",
+                        "tempImageUrl": "https://storage.googleapis.com/ain-dao-ai-playground-dev.appspot.com/inpainting-dev/results/93181b49-8a12-5ae9-93b7-1c44235ea4f3/0.png",
+                        "old_attributes": {
+                            "0": {
+                                "trait_type": "Original attributes 1",
+                                "value": "Original values 1"
+                            },
+                            "1": {
+                                "trait_type": "Original attributes 2",
+                                "value": "Original values2 "
+                            }
+                        },
+                        "old_description": "Description", 
+                        "old_image": "ipfs://Generated Image IPFS CID", 
+                        "old_name": "NFT Name"
+                    },
+                    "contract_info": {
+                        "network": "homestead",
+                        "chain_id": 42,
+                        "account": "0x1234....567", 
+                        "token_id": 150,
+                        "old_metadata": "ipfs://Qm...v1"
+                    },
+                    "updated_at": 1678866478968,
+                    "sender": "0x4E4447767245eBBACdec885bC20CAB5add2eD3a3"
+                }
             },
             "timestamp": 1640223741430
         }

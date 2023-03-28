@@ -8,7 +8,7 @@ const ainCreateApp = async (appName) => {
   const private_key = PRIVATE_KEY;
   const myAddress = ain.wallet.addAndSetDefaultAccount(private_key);
 
-  const res = await ain.db.ref(`/manage_app/${appName}/create/${Date.now()}`).setValue({
+  const res = await ain.db.ref(`/apps/${appName}/create/${Date.now()}`).setValue({
     value: {
       admin: {
         [myAddress]: true,
@@ -24,6 +24,7 @@ const ainCreateApp = async (appName) => {
 
   // console.log(`res: ${JSON.stringify(res)}`);
   if (res) {
+    console.log(res);
     console.log(`App Created with app name "${appName}"\nCheck TX in testnet-insight.ainetwork.ai: ${res.tx_hash}`);
   }
 };
