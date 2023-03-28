@@ -99,8 +99,8 @@ app.post('/trigger', async (req, res) => {
 		console.error('Fail image upload', e);
 		ain.db.ref(errorPath).setValue({
 			value: {
-				state:"Error",
-				msg:"Image upload fail. check your inforamtion of Image"
+				state: "Error",
+				msg: "Image upload fail. check your inforamtion of Image"
 			},
 		})
 		.catch((e) => {
@@ -150,8 +150,8 @@ app.post('/trigger', async (req, res) => {
 		await pinata.unpin(uploadImgRes.IpfsHash);
 		await ain.db.ref(errorPath).setValue({
 			value: {
-				state:"Error",
-				msg:"Metadata upload fail. check your inforamtion of metadata"
+				state: "Error",
+				msg: "Metadata upload fail. check your inforamtion of metadata"
 			},
 		})
 		.catch((e) => {
@@ -162,12 +162,14 @@ app.post('/trigger', async (req, res) => {
 	}
 
 	await ain.db.ref(outputPath).setValue({
+		nonce: -1,
+    	gas_price: 500, 
 		value: {
 			contract:{
-				network:value.contract.network,
-				chain_id:value.contract.chain_id,
-				account:value.contract.account,
-				token_id:value.contract.token_id,
+				network: value.contract.network,
+				chain_id: value.contract.chain_id,
+				account: value.contract.account,
+				token_id: value.contract.token_id,
 				new_metadata: uploadMetadataRes.IpfsHash,
 			},
 			verified_at: Date.now(),
