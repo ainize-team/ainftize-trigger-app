@@ -57,7 +57,7 @@ app.post('/trigger', async (req, res) => {
 	const parsedInputPath = parsePath(inputPath);
 
 	// pre-check the output path
-	const rootPath = [...parsedInputPath.slice(0, parsedInputPath.length - 1)];
+	const rootPath = parsedInputPath.slice(0, parsedInputPath.length - 1);
 
 	const outputPath = formatPath([...rootPath, "verify"]);
 	const errorPath = formatPath([...rootPath, "error"]);
