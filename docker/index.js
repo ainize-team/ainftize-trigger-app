@@ -8,7 +8,7 @@ const { Readable } = require("stream");
 const NodeCache = require("node-cache");
 dotenv.config();
 
-const { parsePath, formatPath } = require('./util');
+const { parsePath, formatPath, validateTransaction } = require('./util');
 
 const app = express();
 
@@ -39,6 +39,10 @@ app.get('/', (req, res, next) => {
 app.post('/trigger', async (req, res) => {
 
 	const { transaction } = req.body;
+
+	// have to check transaction
+	validateTransaction(transaction.tx_body)
+
 	const value = transaction.tx_body.operation.value;
 	const taskId = value.params.task_id;
 	if (cache.get(taskId)) {
