@@ -41,12 +41,15 @@ app.post('/trigger', async (req, res) => {
 	const { transaction } = req.body;
 
 	// have to check transaction
-	validateTransaction(transaction.tx_body)
+	if(!validateTransaction(transaction.tx_body)){
+		console.error("value is invalid. please check transaction");
+		return;
+	}
 
 	const value = transaction.tx_body.operation.value;
 	const taskId = value.params.task_id;
 	if (cache.get(taskId)) {
-		cache.ttl(taskId, 60);
+		cache.ttl(taskId, 86);
 		return;
 	}
 
