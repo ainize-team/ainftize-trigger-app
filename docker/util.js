@@ -26,7 +26,7 @@ const validateTransaction = (tx_body) => {
   return task_id !== '' && temp_image_url !== '';
 }
 
-const errorHandler = async (taskId, msg, e) => {
+const errorHandler = async (taskId, msg) => {
   console.error(msg, e);
   await cache.set(taskId, 'error', 300);
 }

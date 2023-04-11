@@ -43,15 +43,15 @@ app.get(`/check_result/:task_id`, (req, res) => {
 app.post('/trigger', async (req, res) => {
 
 	const { transaction } = req.body;
+	const value = transaction.tx_body.operation.value;
+	const taskId = value.params.task_id;
 
 	// have to check transaction
 	if (!validateTransaction(transaction.tx_body)) {
-		errorHandler('value is invalid. please check transaction');
+		errorHandler(taskId, 'value is invalid. please check transaction');
 		return;
 	}
 
-	const value = transaction.tx_body.operation.value;
-	const taskId = value.params.task_id;
 	if (cache.get(taskId) && cache.get(taskId) !== 'error') {
 		cache.ttl(taskId, 300);
 		return;
@@ -81,8 +81,8 @@ app.post('/trigger', async (req, res) => {
 		responseType: "arraybuffer",
 	})
 		.catch(e => {
-			errorHandler(taskId, 'Fail get image', e);
-			return;
+			errorHandler(taskId, 'Fail get image');
+			throw e;
 		});
 
 	// image file to readable stream
@@ -112,9 +112,9 @@ app.post('/trigger', async (req, res) => {
 				msg: "Image upload fail. check your inforamtion of Image"
 			},
 		})
-			.catch((e) => {
-				errorHandler(taskId, 'Setvalue fail', e);
-				return;
+			.catch((setValueError) => {
+				errorHandler(taskId, 'Setvalue fail');
+				throw setValueError;
 			});
 
 		return;
@@ -163,9 +163,9 @@ app.post('/trigger', async (req, res) => {
 				msg: "Metadata upload fail. check your inforamtion of metadata"
 			},
 		})
-			.catch((e) => {
-				errorHandler(taskId, 'Setvalue fail', e)
-				return;
+			.catch((setvalueError) => {
+				errorHandler(taskId, 'Setvalue fail')
+				throw setvalueError;
 			});
 
 		return;
@@ -186,9 +186,9 @@ app.post('/trigger', async (req, res) => {
 			trigger_verification_account: BOT_ADDRESS,
 		},
 	})
-		.catch((e) => {
-			errorHandler(taskId, 'Setvalue fail', e)
-			return;
+		.catch((setvalueError) => {
+			errorHandler(taskId, 'Setvalue fail');
+			throw setvalueError;
 		});
 	cache.set(taskId, 'done', 300);
 	console.log(`Success! \n image upload tx : ${uploadImgRes.IpfsHash} \n metadata upload tx : ${uploadMetadataRes.IpfsHash}`);
