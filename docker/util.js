@@ -18,8 +18,13 @@ const parsePath = (path) => {
     }
     return (formatted.startsWith('/') ? '' : '/') + formatted;
   }
+const validateTransaction = (tx_body) => {
+  const {task_id, temp_image_url} = tx_body.operation.value.params;
+  return task_id !== '' && temp_image_url !== '';
+}
   
   module.exports = {
     parsePath,
     formatPath,
+    validateTransaction,
   }

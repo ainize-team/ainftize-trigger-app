@@ -24,7 +24,7 @@
                         "task_id": "93181b49-8a12-5ae9-93b7-1c44235ea4f3",
                         "model": "sd_inpainting",
                         "prompt": "test-pink",
-                        "tempImageUrl": "https://storage.googleapis.com/ain-dao-ai-playground-dev.appspot.com/inpainting-dev/results/93181b49-8a12-5ae9-93b7-1c44235ea4f3/0.png",
+                        "temp_image_url": "https://storage.googleapis.com/ain-dao-ai-playground-dev.appspot.com/inpainting-dev/results/93181b49-8a12-5ae9-93b7-1c44235ea4f3/0.png",
                         "old_attributes": {
                             "0": {
                                 "trait_type": "Original attributes 1",
@@ -39,11 +39,11 @@
                         "old_image": "ipfs://Generated Image IPFS CID", 
                         "old_name": "NFT Name"
                     },
-                    "contract_info": {
+                    "contract": {
                         "network": "homestead",
                         "chain_id": 42,
                         "account": "0x1234....567", 
-                        "token_id": 150,
+                        "token_id": "150",
                         "old_metadata": "ipfs://Qm...v1"
                     },
                     "updated_at": 1678866478968,

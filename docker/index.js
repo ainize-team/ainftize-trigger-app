@@ -8,7 +8,7 @@ const { Readable } = require("stream");
 const NodeCache = require("node-cache");
 dotenv.config();
 
-const { parsePath, formatPath } = require('./util');
+const { parsePath, formatPath, validateTransaction } = require('./util');
 
 const app = express();
 
@@ -39,10 +39,17 @@ app.get('/', (req, res, next) => {
 app.post('/trigger', async (req, res) => {
 
 	const { transaction } = req.body;
+
+	// have to check transaction
+	if(!validateTransaction(transaction.tx_body)){
+		console.error("value is invalid. please check transaction");
+		return;
+	}
+
 	const value = transaction.tx_body.operation.value;
 	const taskId = value.params.task_id;
-	if(cache.get(taskId)){
-		cache.ttl(taskId, 60);
+	if (cache.get(taskId)) {
+		cache.ttl(taskId, 86);
 		return;
 	}
 
@@ -50,15 +57,15 @@ app.post('/trigger', async (req, res) => {
 	cache.set(taskId, true, 60);
 
 	// for catch error
-	let uploadMetadataRes; 
+	let uploadMetadataRes;
 	let uploadImgRes;
 
 	const inputPath = transaction.tx_body.operation.ref;
 	const parsedInputPath = parsePath(inputPath);
 
 	// pre-check the output path
-	const rootPath = [...parsedInputPath.slice(0, parsedInputPath.length - 1)]
-	
+	const rootPath = parsedInputPath.slice(0, parsedInputPath.length - 1);
+
 	const outputPath = formatPath([...rootPath, "verify"]);
 	const errorPath = formatPath([...rootPath, "error"]);
 
@@ -66,8 +73,12 @@ app.post('/trigger', async (req, res) => {
 	const pinata = new pinataSDK({ pinataApiKey, pinataSecretApiKey });
 
 	// get image file from url
-	const imageDataResponse = await axios.get(value.params.tempImageUrl, {
+	const imageDataResponse = await axios.get(value.params.temp_image_url, {
 		responseType: "arraybuffer",
+	})
+	.catch(e => {
+		console.error('Fail get image', e)
+		return;
 	});
 
 	// image file to readable stream
@@ -86,21 +97,21 @@ app.post('/trigger', async (req, res) => {
 	};
 
 	// upload image to ipfs
-	try{
-		uploadImgRes = await pinata.pinFileToIPFS(imageDataStream, options)
+	try {
+		uploadImgRes = await pinata.pinFileToIPFS(imageDataStream, options);
 	}
-	catch(e) {
-		console.error(e);
+	catch (e) {
+		console.error('Fail image upload', e);
 		ain.db.ref(errorPath).setValue({
 			value: {
-				state:"Error",
-				msg:"Image upload fail. check your inforamtion of Image"
+				state: "Error",
+				msg: "Image upload fail. check your inforamtion of Image"
 			},
 		})
-		.catch((e) => {
-			console.error(`setValue failure:`, e);
-			res.status(502).send("image upload fail");
-		});
+			.catch((e) => {
+				console.error(`setValue failure:`, e);
+				res.status(502).send("image upload fail");
+			});
 
 		return;
 	}
@@ -118,8 +129,8 @@ app.post('/trigger', async (req, res) => {
 		old_name: value.params.old_name,
 		namespaces: {
 			ainetwork: {
-				ain_tx: transaction.hash, 
-				old_metadata: value.contract_info.old_metadata, 
+				ain_tx: transaction.hash,
+				old_metadata: value.contract.old_metadata,
 				updated_at: Date.now()
 			},
 		}
@@ -134,108 +145,50 @@ app.post('/trigger', async (req, res) => {
 		},
 	}
 
-	try{
+	try {
 		// upload metadata to ipfs
 		uploadMetadataRes = await pinata.pinJSONToIPFS(metadata, metadataOption);
 	}
-	catch (e){
+	catch (e) {
 		// if fail upload metadata, uploaded image is unpined in pinata.
-		console.error(e);
+		console.error('Fail ipfs upload', e);
 		await pinata.unpin(uploadImgRes.IpfsHash);
 		await ain.db.ref(errorPath).setValue({
 			value: {
-				state:"Error",
-				msg:"Metadata upload fail. check your inforamtion of metadata"
+				state: "Error",
+				msg: "Metadata upload fail. check your inforamtion of metadata"
 			},
 		})
-		.catch((e) => {
-			console.error(`setValue failure:`, e);
-		});
+			.catch((e) => {
+				console.error(`setValue failure:`, e);
+				return;
+			});
 
 		return;
 	}
 
-	const ainRes = await ain.db.ref(outputPath).setValue({
+	await ain.db.ref(outputPath).setValue({
+		nonce: -1,
+		gas_price: 500,
 		value: {
-			contract:{
-				network:value.contract_info.network,
-				chain_id:value.contract_info.chain_id,
-				account:value.contract_info.account,
-				token_id:value.contract_info.token_id,
+			contract: {
+				network: value.contract.network,
+				chain_id: value.contract.chain_id,
+				account: value.contract.account,
+				token_id: value.contract.token_id,
 				new_metadata: uploadMetadataRes.IpfsHash,
 			},
 			verified_at: Date.now(),
 			trigger_verification_account: BOT_ADDRESS,
 		},
-	}).catch((e) => {
+	})
+	.catch((e) => {
 		console.error(`setValue failure:`, e);
+		return;
 	});
 	console.log(`Success! \n image upload tx : ${uploadImgRes.IpfsHash} \n metadata upload tx : ${uploadMetadataRes.IpfsHash}`);
 
 })
-
-// app.post('/trigger', async (req, res) => {
-
-//     // Example of the transaction shape: refer to tx_sample.json
-
-//     // 1. check tx meets precondition
-//     const tx = req.body.transaction;
-//     if (!tx || !tx.tx_body || !tx.tx_body.operation) {
-//         console.log(`Invalid tx: ${JSON.stringify(tx)}`);
-//         return;
-//     }
-//     if (tx.tx_body.operation.type !== 'SET_VALUE') {
-//         console.log(`Not supported tx type: ${tx.tx_body.operation.type}`)
-//         return;
-//     }
-
-//     const inputPath = tx.tx_body.operation.ref;
-//     const parsedInputPath = parsePath(inputPath);
-//     if (parsedInputPath.length !== 7 ||
-//         parsedInputPath[0] !== 'apps' ||
-//         parsedInputPath[1] !== 'sf_ainft_0' ||
-//         parsedInputPath[2] !== 'sd_inpainting' ||
-//         parsedInputPath[6] !== 'input') {
-//         console.log(`Not supported path pattern: ${inputPath}`);
-//         return;
-//     }
-
-//     // 2. call GET /tasks/{task_id}
-//     const inputValue = tx.tx_body.operation.value;
-//     const options = JSON.parse(inputValue);
-
-//     const task_id = options.task_id;
-//     const pickedOptions = (({ prompt, seed, guidance_scale }) => ({ prompt, seed, guidance_scale }))(options);
-//     pickedOptions = {...pickedOptions, ...{"num_images_per_prompt": 1}};
-
-//     // pickedOptions = {
-//     //     prompt: ...,
-//     //     seed: ...,
-//     //     guidance_scale: ...,
-//     //     num_images_per_prompt: 1
-//     // }
-
-//     const SDResult = await axios.get(`${SD_INPAINTING_ENDPOINT}/tasks/${task_id}`, pickedOptions);
-//     console.log(JSON.stringify(SDResult.data,null,2));
-
-//     if (SDResult.data.status !== "completed") {
-//         console.log(`Task ${task_id} is not completed!`);
-//         res.send(`Task ${task_id} is not completed!`);
-//         return;
-//     }
-
-
-//     //pre-check the output path
-//     const outputPath = formatPath([...parsedInputPath.slice(0, parsedInputPath.length - 1), "signed_data"]);
-//     const result = await ain.db.ref(outputPath).setValue({
-//       value: `${JSON.stringify(SDResult.data, null, 2)}`,
-//       nonce: -1,
-//     })
-//     .catch((e) => {
-//       console.error(`setValue failure:`, e);
-//     });
-
-// });
 
 app.listen(port, () => {
 	console.log(`App listening at http://localhost:${port}`);
