@@ -178,7 +178,7 @@ app.post('/trigger', async (req, res) => {
 			contract: {
 				network: value.contract.network,
 				chain_id: value.contract.chain_id,
-				account: value.contract.account,
+				address: value.contract.address,
 				token_id: value.contract.token_id,
 				new_metadata: uploadMetadataRes.IpfsHash,
 			},
