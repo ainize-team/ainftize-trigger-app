@@ -3,12 +3,11 @@ const AinJs = require('@ainblockchain/ain-js').default;
 const axios = require('axios');
 const dotenv = require('dotenv');
 const pinataSDK = require("@pinata/sdk");
-const fs = require("fs");
 const { Readable } = require("stream");
 const NodeCache = require("node-cache");
 dotenv.config();
 
-const { parsePath, formatPath, validateTransaction } = require('./util');
+const { parsePath, formatPath, validateTransaction, errorHandler } = require('./util');
 
 const app = express();
 
@@ -36,25 +35,30 @@ app.get('/', (req, res, next) => {
 		.end();
 });
 
+app.get(`/check_result/:task_id`, (req, res) => {
+//	const cacheData = cache.get(req.params.task_id);
+
+})
+
 app.post('/trigger', async (req, res) => {
 
 	const { transaction } = req.body;
+	const value = transaction.tx_body.operation.value;
+	const taskId = value.params.task_id;
 
 	// have to check transaction
-	if(!validateTransaction(transaction.tx_body)){
-		console.error("value is invalid. please check transaction");
+	if (!validateTransaction(transaction.tx_body)) {
+		errorHandler(taskId, 'value is invalid. please check transaction');
 		return;
 	}
 
-	const value = transaction.tx_body.operation.value;
-	const taskId = value.params.task_id;
-	if (cache.get(taskId)) {
-		cache.ttl(taskId, 86);
+	if (cache.get(taskId) && cache.get(taskId) !== 'error') {
+		cache.ttl(taskId, 300);
 		return;
 	}
 
 	// if request is first request, set cache 
-	cache.set(taskId, true, 60);
+	cache.set(taskId, "in_progress", 300);
 
 	// for catch error
 	let uploadMetadataRes;
@@ -76,10 +80,10 @@ app.post('/trigger', async (req, res) => {
 	const imageDataResponse = await axios.get(value.params.temp_image_url, {
 		responseType: "arraybuffer",
 	})
-	.catch(e => {
-		console.error('Fail get image', e)
-		return;
-	});
+		.catch(e => {
+			errorHandler(taskId, 'Fail get image');
+			throw e;
+		});
 
 	// image file to readable stream
 	const imageDataStream = new Readable();
@@ -101,16 +105,16 @@ app.post('/trigger', async (req, res) => {
 		uploadImgRes = await pinata.pinFileToIPFS(imageDataStream, options);
 	}
 	catch (e) {
-		console.error('Fail image upload', e);
+		errorHandler(taskId, 'Fail image upload', e);
 		ain.db.ref(errorPath).setValue({
 			value: {
 				state: "Error",
 				msg: "Image upload fail. check your inforamtion of Image"
 			},
 		})
-			.catch((e) => {
-				console.error(`setValue failure:`, e);
-				res.status(502).send("image upload fail");
+			.catch((setValueError) => {
+				errorHandler(taskId, 'Setvalue fail');
+				throw setValueError;
 			});
 
 		return;
@@ -151,7 +155,7 @@ app.post('/trigger', async (req, res) => {
 	}
 	catch (e) {
 		// if fail upload metadata, uploaded image is unpined in pinata.
-		console.error('Fail ipfs upload', e);
+		errorHandler(taskId, 'Fail ipfs upload', e)
 		await pinata.unpin(uploadImgRes.IpfsHash);
 		await ain.db.ref(errorPath).setValue({
 			value: {
@@ -159,9 +163,9 @@ app.post('/trigger', async (req, res) => {
 				msg: "Metadata upload fail. check your inforamtion of metadata"
 			},
 		})
-			.catch((e) => {
-				console.error(`setValue failure:`, e);
-				return;
+			.catch((setvalueError) => {
+				errorHandler(taskId, 'Setvalue fail')
+				throw setvalueError;
 			});
 
 		return;
@@ -182,10 +186,11 @@ app.post('/trigger', async (req, res) => {
 			trigger_verification_account: BOT_ADDRESS,
 		},
 	})
-	.catch((e) => {
-		console.error(`setValue failure:`, e);
-		return;
-	});
+		.catch((setvalueError) => {
+			errorHandler(taskId, 'Setvalue fail');
+			throw setvalueError;
+		});
+	cache.set(taskId, 'done', 300);
 	console.log(`Success! \n image upload tx : ${uploadImgRes.IpfsHash} \n metadata upload tx : ${uploadMetadataRes.IpfsHash}`);
 
 })
